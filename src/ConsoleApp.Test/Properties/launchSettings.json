@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "ConsoleApp.Test": {
+      "commandName": "ConsoleApp.Test",
+      "commandLineArgs": "testa commandb -pa \"this is my test\" --paramb 15.7.1980 -pc 4711"
+    }
+  }
+}
