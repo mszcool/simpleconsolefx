@@ -2,7 +2,7 @@
   "profiles": {
     "ConsoleApp.Test": {
       "commandName": "ConsoleApp.Test",
-      "commandLineArgs": "testa commandb -pa \"this is my test\" --paramb 15.7.1980 -pc 4711"
+      "commandLineArgs": "testa --parama \"this is my test\" --paramb 4711 --paramc http://www.gmx.at"
     }
   }
 }

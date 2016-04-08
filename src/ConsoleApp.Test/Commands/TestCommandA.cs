@@ -6,7 +6,14 @@ using System.Threading.Tasks;
 
 namespace ConsoleApp.Test.Commands
 {
-    [ConsoleCommand(name: "testa", description: "That is the main command for this application!")]
+    [
+        ConsoleCommand
+        (
+            name: "testa", 
+            description: "That is the main command for this application!",
+            children: new Type[] { typeof(TestCommandA1), typeof(TestCommandA2) }
+        )
+    ]
     public static class TestCommandA
     {
         [ConsoleCommandDefaultMethod]
@@ -27,6 +34,38 @@ namespace ConsoleApp.Test.Commands
                                     [ConsoleCommandParameter(name: "paramc", shortName: "pc")] int paramC)
         {
             ConsoleFeatures.WriteMessage($"CommandB{Environment.NewLine}--paramA={paramA}{Environment.NewLine}--paramB={paramB}{Environment.NewLine}--paramD={paramC}");
+        }
+    }
+
+    [ConsoleCommand(name: "TestCommandA1", isRoot: false)]
+    public static class TestCommandA1
+    {
+        [ConsoleCommandDefaultMethod]
+        public static void DefaultCommand(string paramA)
+        {
+            ConsoleFeatures.WriteMessage($"default command for TestCommandA1 called!");
+        }
+
+        [ConsoleCommand(name: "commanda1")]
+        public static void CommandA1(string paramA, int paramB)
+        {
+            ConsoleFeatures.WriteMessage($"CommandA1 of TestCommandA1 called with {paramA} and {paramB}!!");
+        }
+    }
+
+    [ConsoleCommand(name: "TestCommandA2", isRoot: false)]
+    public static class TestCommandA2
+    {
+        [ConsoleCommandDefaultMethod]
+        public static void DefaultCommand()
+        {
+
+        }
+
+        [ConsoleCommand(name: "commanda2")]
+        public static void CommandA1(string paramA, int paramB)
+        {
+            ConsoleFeatures.WriteMessage($"CommandA1 of TestCommandA1 called with {paramA} and {paramB}!!");
         }
     }
 }

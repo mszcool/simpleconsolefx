@@ -8,14 +8,18 @@ namespace ConsoleAppBase
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
     public class ConsoleCommandAttribute : Attribute
     {
-        public ConsoleCommandAttribute(string name, string description = "") 
+        public ConsoleCommandAttribute(string name, bool isRoot = true, string description = "", Type[] children = null) 
         {
             CommandName = name;
+            IsRootCommand = isRoot;
             CommandDescription = description;
+            ChildCommands = children;
         }
 
         public string CommandName { get; }
+        public bool IsRootCommand { get; }
         public string CommandDescription { get; }
+        public Type[] ChildCommands { get; }
     }
 
     [AttributeUsage(AttributeTargets.Method)]
@@ -32,7 +36,6 @@ namespace ConsoleAppBase
     [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Property)]
     public class ConsoleCommandParameterAttribute : Attribute
     {
-        public ConsoleCommandParameterAttribute() { }
         public ConsoleCommandParameterAttribute(string name, string shortName = "", string description = "")
         {
             ParameterName = name;

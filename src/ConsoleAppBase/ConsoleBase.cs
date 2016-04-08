@@ -51,6 +51,9 @@ namespace ConsoleAppBase
                 var commands = new List<string>();
                 var parameters = new Dictionary<string, string>();
 
+                // First of all, filter the command types by root-commands, only
+                commandTypes = commandTypes.Where(t => t.GetTypeInfo().GetCustomAttribute<ConsoleCommandAttribute>().IsRootCommand).ToArray();
+
                 // First of all, parse the parameters
                 // Assume a '{command}* {--parametername value}*' format in the list of arguments
                 // This means we parse commands until we found the first '--parameter'
@@ -89,8 +92,6 @@ namespace ConsoleAppBase
 
             if (commands.Count == 0)
                 throw new ArgumentException("Expected at least one command passed in. Please review the list of available commands!");
-            if (commands.Count > 2)
-                throw new ArgumentException("The current version supports commands with one sub-command, only!");
 
             // Second collect all parameters and their values
             do
@@ -104,40 +105,61 @@ namespace ConsoleAppBase
             } while (true);
         }
 
-        private MethodInfo FindCommandMethod(List<string> commands, Type[] commandTypes)
+        private Type FindCommandClass(IEnumerable<string> commands, Type[] commandTypes)
         {
-            // Currently I only support 'command command {--parameters}', but in the future I'll extend this to
-            // recursively search for nested command classes up until it reaches the last class in hierarchy to find the method.
-            var commandName = commands[0].ToLower();
-            var subCommandName = (commands.Count >= 2 ? commands[1].ToLower() : string.Empty);
+            // If no command types are here, skip all
+            if (commandTypes == null) return null;
+            if (commandTypes.Length == 0) return null;
 
-            // Find the command class
-            var selectedCommandType = default(Type);
-            foreach (var commandType in commandTypes)
+            // Get the command to find
+            var cmdToFind = commands.FirstOrDefault();
+            if (cmdToFind == null) return null;
+
+            // Find the command in the list of commands
+            foreach (var ct in commandTypes)
             {
-                var commandInfo = (ConsoleCommandAttribute)(commandType.GetTypeInfo().GetCustomAttribute(typeof(ConsoleCommandAttribute)));
-                if (commandInfo.CommandName.ToLower() == commandName)
+                var cmdAttr = ct.GetTypeInfo().GetCustomAttribute<ConsoleCommandAttribute>();
+                if (cmdAttr.CommandName.ToLower().Equals(cmdToFind.ToLower()))
                 {
-                    selectedCommandType = commandType;
-                    break;
+                    if (commands.Count() == 1)
+                        return ct;
+                    else if (cmdAttr.ChildCommands == null)
+                        return ct;
+                    else
+                    {
+                        var ctChild = FindCommandClass(commands.Skip(1), cmdAttr.ChildCommands);
+                        if (ctChild == null) return ct;
+                        else return ctChild;
+                    }
                 }
             }
+
+            // Nothing found!!
+            return null;
+        }
+
+        private MethodInfo FindCommandMethod(List<string> commands, Type[] commandTypes)
+        {
+            // Start with all root-commands and recursively find the command class to execute upon
+            var selectedCommandType = FindCommandClass(commands,commandTypes);
             if (selectedCommandType == null)
-                throw new ArgumentException($"Unknown command {commandName} specified in the list of parameters. Please review the list of available commands!");
+                throw new ArgumentException($"Unknown command '{string.Join(" ", commands.ToArray())}' specified in the list of parameters. Please review the list of available commands!");
 
             // Next find the command-method based on the sub-command type
+            var commandMethodName = commands.LastOrDefault();
             var selectedCommandMethod = default(MethodInfo);
             var selectedDefaultCommandMethod = default(MethodInfo);
             foreach (var m in selectedCommandType.GetMethods(BindingFlags.Public | BindingFlags.IgnoreCase | BindingFlags.Static))
             {
                 var commandInfo = (ConsoleCommandAttribute)(m.GetCustomAttribute(typeof(ConsoleCommandAttribute)));
-                if ((commandInfo != null) && (commandInfo.CommandName.ToLower() == subCommandName))
+                if ((commandInfo != null) && (commandInfo.CommandName.ToLower() == commandMethodName))
                 {
                     selectedCommandMethod = m;
                     break;
                 }
                 else if (m.GetCustomAttribute(typeof(ConsoleCommandDefaultMethodAttribute)) != null)
                 {
+                    // TODO: fix this bug - when a command is passed in that is unknown, it always falls back to the default one
                     selectedDefaultCommandMethod = m;
                 }
             }
@@ -146,7 +168,7 @@ namespace ConsoleAppBase
             else if (selectedDefaultCommandMethod != null)
                 return selectedDefaultCommandMethod;
             else
-                throw new ArgumentException($"Unknown command {subCommandName} specified in the list of parameters. Please review the list of available commands!");
+                throw new ArgumentException($"Unknown command {string.Join(" ", commands.ToArray())} specified in the list of parameters. Please review the list of available commands!");
         }
 
         private List<object> CompileParameters(Dictionary<string, string> parameters, MethodInfo commandMethod)
