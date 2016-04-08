@@ -105,15 +105,15 @@ namespace ConsoleAppBase
             } while (true);
         }
 
-        private Type FindCommandClass(IEnumerable<string> commands, Type[] commandTypes)
+        private Type FindCommandClass(List<string> commands, Type[] commandTypes)
         {
-            // If no command types are here, skip all
-            if (commandTypes == null) return null;
-            if (commandTypes.Length == 0) return null;
-
             // Get the command to find
             var cmdToFind = commands.FirstOrDefault();
             if (cmdToFind == null) return null;
+
+            // If no command types are here, skip all
+            if (commandTypes == null) return null;
+            if (commandTypes.Length == 0) return null;
 
             // Find the command in the list of commands
             foreach (var ct in commandTypes)
@@ -121,13 +121,13 @@ namespace ConsoleAppBase
                 var cmdAttr = ct.GetTypeInfo().GetCustomAttribute<ConsoleCommandAttribute>();
                 if (cmdAttr.CommandName.ToLower().Equals(cmdToFind.ToLower()))
                 {
-                    if (commands.Count() == 1)
-                        return ct;
-                    else if (cmdAttr.ChildCommands == null)
+                    commands.RemoveAt(0);
+
+                    if (cmdAttr.ChildCommands == null)
                         return ct;
                     else
                     {
-                        var ctChild = FindCommandClass(commands.Skip(1), cmdAttr.ChildCommands);
+                        var ctChild = FindCommandClass(commands, cmdAttr.ChildCommands);
                         if (ctChild == null) return ct;
                         else return ctChild;
                     }
@@ -141,7 +141,7 @@ namespace ConsoleAppBase
         private MethodInfo FindCommandMethod(List<string> commands, Type[] commandTypes)
         {
             // Start with all root-commands and recursively find the command class to execute upon
-            var selectedCommandType = FindCommandClass(commands,commandTypes);
+            var selectedCommandType = FindCommandClass(commands, commandTypes);
             if (selectedCommandType == null)
                 throw new ArgumentException($"Unknown command '{string.Join(" ", commands.ToArray())}' specified in the list of parameters. Please review the list of available commands!");
 
@@ -165,7 +165,7 @@ namespace ConsoleAppBase
             }
             if (selectedCommandMethod != null)
                 return selectedCommandMethod;
-            else if (selectedDefaultCommandMethod != null)
+            else if ((selectedDefaultCommandMethod != null) && (commandMethodName == null))
                 return selectedDefaultCommandMethod;
             else
                 throw new ArgumentException($"Unknown command {string.Join(" ", commands.ToArray())} specified in the list of parameters. Please review the list of available commands!");

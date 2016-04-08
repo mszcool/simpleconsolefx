@@ -37,7 +37,7 @@ namespace ConsoleApp.Test.Commands
         }
     }
 
-    [ConsoleCommand(name: "TestCommandA1", isRoot: false)]
+    [ConsoleCommand(name: "a1", isRoot: false)]
     public static class TestCommandA1
     {
         [ConsoleCommandDefaultMethod]
@@ -46,14 +46,14 @@ namespace ConsoleApp.Test.Commands
             ConsoleFeatures.WriteMessage($"default command for TestCommandA1 called!");
         }
 
-        [ConsoleCommand(name: "commanda1")]
+        [ConsoleCommand(name: "run")]
         public static void CommandA1(string paramA, int paramB)
         {
             ConsoleFeatures.WriteMessage($"CommandA1 of TestCommandA1 called with {paramA} and {paramB}!!");
         }
     }
 
-    [ConsoleCommand(name: "TestCommandA2", isRoot: false)]
+    [ConsoleCommand(name: "a2", isRoot: false)]
     public static class TestCommandA2
     {
         [ConsoleCommandDefaultMethod]
@@ -62,7 +62,7 @@ namespace ConsoleApp.Test.Commands
 
         }
 
-        [ConsoleCommand(name: "commanda2")]
+        [ConsoleCommand(name: "run")]
         public static void CommandA1(string paramA, int paramB)
         {
             ConsoleFeatures.WriteMessage($"CommandA1 of TestCommandA1 called with {paramA} and {paramB}!!");
