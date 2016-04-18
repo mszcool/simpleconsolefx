@@ -57,11 +57,18 @@ namespace ConsoleAppBase
                 // First of all, parse the parameters
                 // Assume a '{command}* {--parametername value}*' format in the list of arguments
                 // This means we parse commands until we found the first '--parameter'
-                ExtractParameters(args, commands, parameters);
+                var helpNeeded = ExtractParameters(args, commands, parameters);
 
                 // Find the command type that matches the "parent-command" (the class) and the "child-command" (the method)
                 // Future feature: support nesting of commands (class-class-class-method)
                 var commandMethod = FindCommandMethod(commands, commandTypes);
+
+                // If a "--help" or "-?" parameter was passed in as last parameter, print out help and stop execution
+                if (helpNeeded)
+                {
+                    PrintAvailabeCommands(commandTypes, commandMethod.DeclaringType);
+                    return;
+                }
 
                 // Get the list of parameters which needed to be passed into the method and their types
                 var paramsForCall = CompileParameters(parameters, commandMethod);
@@ -69,16 +76,17 @@ namespace ConsoleAppBase
                 // Finally call the actual command for execution
                 commandMethod.Invoke(null, paramsForCall.ToArray());
             }
-            catch (ArgumentException ex)
+            catch (ConsoleExecutionException ex)
             {
                 ConsoleFeatures.WriteMessage($"Usage: {this.ConsoleAppName} command [subcommand] {{parameters}}");
                 ConsoleFeatures.WriteError(ex.Message);
-                PrintAvailabeCommands(commandTypes);
+                PrintAvailabeCommands(commandTypes, ex.HelpContextCommandType);
             }
         }
 
-        private void ExtractParameters(string[] args, List<string> commands, Dictionary<string, string> parameters)
+        private bool ExtractParameters(string[] args, List<string> commands, Dictionary<string, string> parameters)
         {
+            bool helpNeeded = false;
             int argParseIdx = 0;
 
             // First collect all the commands (which are not pre-fixed by '--')
@@ -91,22 +99,38 @@ namespace ConsoleAppBase
             } while (true);
 
             if (commands.Count == 0)
-                throw new ArgumentException("Expected at least one command passed in. Please review the list of available commands!");
+                throw new ConsoleExecutionException("Expected at least one command passed in. Please review the list of available commands!");
 
             // Second collect all parameters and their values
+            var paramName = default(string);
+            var paramValue = default(string);
             do
             {
                 if (argParseIdx >= args.Length) break;
-                var paramName = args[argParseIdx++];
-                var paramValue = (argParseIdx < args.Length ? args[argParseIdx++] : null);
+                paramName = args[argParseIdx++];
                 if (!paramName.StartsWith("--") && !paramName.StartsWith("-"))
-                    throw new ArgumentException($"Expected parameter with format '--parametername' instead of a command '{paramName}' at this place!");
-                parameters.Add(paramName, paramValue);
+                    throw new ConsoleExecutionException($"Expected parameter with format '--parametername' instead of a command '{paramName}' at this place!");
+                else if (paramName.Equals("--help") || paramName.Equals("-?"))
+                    helpNeeded = true;
+                else
+                {
+                    // Check if the next parameter is a value or a parameter
+                    paramValue = null;
+                    if (argParseIdx < args.Length)
+                        paramValue = (args[argParseIdx].StartsWith("--") ? null : args[argParseIdx++]);
+
+                    parameters.Add(paramName, paramValue);
+                }
             } while (true);
+
+            return helpNeeded;
         }
 
-        private Type FindCommandClass(List<string> commands, Type[] commandTypes)
+        private Type FindCommandClass(List<string> commands, Type[] commandTypes, out Type lastCommandTypeIdentified)
         {
+            // No command found at all
+            lastCommandTypeIdentified = null;
+
             // Get the command to find
             var cmdToFind = commands.FirstOrDefault();
             if (cmdToFind == null) return null;
@@ -127,11 +151,12 @@ namespace ConsoleAppBase
                         return ct;
                     else
                     {
-                        var ctChild = FindCommandClass(commands, cmdAttr.ChildCommands);
+                        var ctChild = FindCommandClass(commands, cmdAttr.ChildCommands, out lastCommandTypeIdentified);
                         if (ctChild == null) return ct;
                         else return ctChild;
                     }
                 }
+                lastCommandTypeIdentified = ct;
             }
 
             // Nothing found!!
@@ -141,9 +166,10 @@ namespace ConsoleAppBase
         private MethodInfo FindCommandMethod(List<string> commands, Type[] commandTypes)
         {
             // Start with all root-commands and recursively find the command class to execute upon
-            var selectedCommandType = FindCommandClass(commands, commandTypes);
+            var lastCommandTypeFoundForHelp = default(Type);
+            var selectedCommandType = FindCommandClass(commands, commandTypes, out lastCommandTypeFoundForHelp);
             if (selectedCommandType == null)
-                throw new ArgumentException($"Unknown command '{string.Join(" ", commands.ToArray())}' specified in the list of parameters. Please review the list of available commands!");
+                throw new ConsoleExecutionException($"Unknown command '{string.Join(" ", commands.ToArray())}' specified in the list of parameters. Please review the list of available commands!", lastCommandTypeFoundForHelp);
 
             // Next find the command-method based on the sub-command type
             var commandMethodName = commands.LastOrDefault();
@@ -168,7 +194,7 @@ namespace ConsoleAppBase
             else if ((selectedDefaultCommandMethod != null) && (commandMethodName == null))
                 return selectedDefaultCommandMethod;
             else
-                throw new ArgumentException($"Unknown command {string.Join(" ", commands.ToArray())} specified in the list of parameters. Please review the list of available commands!");
+                throw new ConsoleExecutionException($"Unknown command {string.Join(" ", commands.ToArray())} specified in the list of parameters. Please review the list of available commands!", selectedCommandType);
         }
 
         private List<object> CompileParameters(Dictionary<string, string> parameters, MethodInfo commandMethod)
@@ -193,7 +219,7 @@ namespace ConsoleAppBase
                                         : parameters[paramShortName]);
 
                     if ((paramValue == null) && (p.ParameterType.FullName != "System.Boolean"))
-                        throw new ArgumentException($"Missing parameter value for parameter {p.Name.ToLower()} of command {commandMethod.Name.ToLower()}!");
+                        throw new ConsoleExecutionException($"Missing parameter value for parameter {p.Name.ToLower()} of command {commandMethod.Name.ToLower()}!");
 
                     try
                     {
@@ -233,12 +259,12 @@ namespace ConsoleAppBase
                     }
                     catch (Exception)
                     {
-                        throw new ArgumentException($"Invalid value passed in for parameter {paramName}: {paramValue}!");
+                        throw new ConsoleExecutionException($"Invalid value passed in for parameter {paramName}: {paramValue}!");
                     }
                 }
                 else if (!p.HasDefaultValue)
                 {
-                    throw new ArgumentException($"Missing value for parameter {p.Name.ToLower()} for command specified!");
+                    throw new ConsoleExecutionException($"Missing value for parameter {p.Name.ToLower()} for command specified!");
                 }
                 else
                 {
@@ -248,14 +274,85 @@ namespace ConsoleAppBase
             return parametersForCall;
         }
 
-
-        private void PrintAvailabeCommands(Type[] commandTypes)
+        private void PrintAvailabeCommands(Type[] commandTypes, Type currentCommandContextForHelp)
         {
             ConsoleFeatures.WriteMessage($"Usage: {ConsoleAppName} command [command] [{{--parameterName parameterValue}}]");
             foreach (var cmd in commandTypes)
             {
-                var cmdAttr = (ConsoleCommandAttribute)(cmd.GetTypeInfo().GetCustomAttribute(typeof(ConsoleCommandAttribute)));
+                var cmdAttr = cmd.GetTypeInfo().GetCustomAttribute<ConsoleCommandAttribute>();
                 ConsoleFeatures.WriteMessage($"{cmdAttr.CommandName}\t\t{cmdAttr.CommandDescription}");
+            }
+
+            if (currentCommandContextForHelp != null)
+            {
+                var cmdAttr = currentCommandContextForHelp.GetTypeInfo().GetCustomAttribute<ConsoleCommandAttribute>();
+                ConsoleFeatures.WriteMessage($"--- Detailed help for {cmdAttr.CommandName} ---");
+                ConsoleFeatures.WriteMessage($"{cmdAttr.CommandDescription}");
+
+                // Get the default command and output its parameters
+                var defaultMethod = currentCommandContextForHelp
+                                        .GetMethods(BindingFlags.Public | BindingFlags.Static)
+                                        .Where(m => m.GetCustomAttribute<ConsoleCommandDefaultMethodAttribute>() != null)
+                                        .FirstOrDefault();
+                if (defaultMethod != null)
+                {
+                    ConsoleFeatures.WriteMessage("  Direct Command Parameters (if no sub-command specified):");
+                    PrintMethodHelp(defaultMethod);
+                }
+
+                // Get the child-commands and write help for them
+                if (cmdAttr.ChildCommands != null && cmdAttr.ChildCommands.Length > 0)
+                {
+                    foreach (var item in cmdAttr.ChildCommands)
+                    {
+                        var attr = item.GetTypeInfo().GetCustomAttribute<ConsoleCommandAttribute>();
+                        ConsoleFeatures.WriteMessage($"{attr.CommandName}\t\t{attr.CommandDescription}");
+                    }
+                }
+
+                // Get all the detailed methods annoated with the attribute of this specific type
+                var methods = currentCommandContextForHelp
+                                .GetMethods(BindingFlags.Public | BindingFlags.Static)
+                                .Where(m => m.GetCustomAttributes<ConsoleCommandAttribute>().Count() > 0);
+                foreach (var item in methods) PrintMethodHelp(item);
+
+            }
+        }
+
+        private void PrintMethodHelp(MethodInfo mi)
+        {
+            var attr = mi.GetCustomAttribute<ConsoleCommandAttribute>();
+            if (attr != null)
+                ConsoleFeatures.WriteMessage($"{attr.CommandName}\t\t{attr.CommandDescription}");
+
+            var parametersOfMethod = mi.GetParameters();
+            foreach (var item in parametersOfMethod)
+            {
+                var paramDefaultValueHelp = (item.HasDefaultValue
+                                             ? item.DefaultValue.ToString()
+                                             : "n/a");
+
+                var methodAttr = item.GetCustomAttribute<ConsoleCommandParameterAttribute>();
+                if (methodAttr != null)
+                {
+                    var shortParamHelp = (string.IsNullOrEmpty(methodAttr.ParameterShortName)
+                                          ? "n/a"
+                                          : $"-{methodAttr.ParameterShortName}");
+
+                    ConsoleFeatures.WriteMessage($"  --{methodAttr.ParameterName} " +
+                                                 $"(short: {shortParamHelp}) " +
+                                                 $"{item.ParameterType.Name} " +
+                                                 $"(default: {paramDefaultValueHelp})" +
+                                                 $"{Environment.NewLine}    " +
+                                                 $"{attr.CommandDescription}");
+                }
+                else
+                {
+                    ConsoleFeatures.WriteMessage($"  --{item.Name} " +
+                                                 $"(short: n/a) " +
+                                                 $"{item.ParameterType.Name} " +
+                                                 $"(default: {paramDefaultValueHelp})");
+                }
             }
         }
 

@@ -12,7 +12,10 @@ namespace ConsoleAppBase
         {
             CommandName = name;
             IsRootCommand = isRoot;
-            CommandDescription = description;
+            if (string.IsNullOrEmpty(description))
+                CommandDescription = "Not available - contact author of console app to provide description!";
+            else
+                CommandDescription = description;
             ChildCommands = children;
         }
 
