@@ -189,9 +189,12 @@ namespace ConsoleAppBase
                 if (parameters.ContainsKey(paramName) || parameters.ContainsKey(paramShortName))
                 {
                     var paramValue = (parameters.ContainsKey(paramName) ?
-                                        parameters[paramName] : parameters[paramShortName]);
+                                        parameters[paramName]
+                                        : parameters[paramShortName]);
+
                     if ((paramValue == null) && (p.ParameterType.FullName != "System.Boolean"))
                         throw new ArgumentException($"Missing parameter value for parameter {p.Name.ToLower()} of command {commandMethod.Name.ToLower()}!");
+
                     try
                     {
                         switch (p.ParameterType.FullName)
@@ -236,6 +239,10 @@ namespace ConsoleAppBase
                 else if (!p.HasDefaultValue)
                 {
                     throw new ArgumentException($"Missing value for parameter {p.Name.ToLower()} for command specified!");
+                }
+                else
+                {
+                    parametersForCall.Add(Type.Missing);
                 }
             }
             return parametersForCall;

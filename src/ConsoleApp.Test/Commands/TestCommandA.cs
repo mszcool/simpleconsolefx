@@ -23,7 +23,7 @@ namespace ConsoleApp.Test.Commands
         }
 
         [ConsoleCommand(name: "commanda")]
-        public static void CommandA(string paramA, int paramB, Uri paramC)
+        public static void CommandA(string paramA, Uri paramC, int paramB = 1111)
         {
             ConsoleFeatures.WriteMessage($"CommandA{Environment.NewLine}--paramA={paramA}{Environment.NewLine}--paramB={paramB}{Environment.NewLine}--paramD={paramC}");
         }
