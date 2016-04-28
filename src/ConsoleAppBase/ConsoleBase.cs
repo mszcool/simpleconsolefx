@@ -286,7 +286,11 @@ namespace ConsoleAppBase
             if (currentCommandContextForHelp != null)
             {
                 var cmdAttr = currentCommandContextForHelp.GetTypeInfo().GetCustomAttribute<ConsoleCommandAttribute>();
-                ConsoleFeatures.WriteMessage($"--- Detailed help for {cmdAttr.CommandName} ---");
+
+                var helpHeaderMessage = $"--- Detailed help for {cmdAttr.CommandName} ---";
+                var helpHeaderBorder = new string('-', helpHeaderMessage.Length);
+
+                ConsoleFeatures.WriteMessage($"{Environment.NewLine}{helpHeaderBorder}{Environment.NewLine}{helpHeaderMessage}{Environment.NewLine}{helpHeaderBorder}");
                 ConsoleFeatures.WriteMessage($"{cmdAttr.CommandDescription}");
 
                 // Get the default command and output its parameters
@@ -294,19 +298,20 @@ namespace ConsoleAppBase
                                         .GetMethods(BindingFlags.Public | BindingFlags.Static)
                                         .Where(m => m.GetCustomAttribute<ConsoleCommandDefaultMethodAttribute>() != null)
                                         .FirstOrDefault();
-                if (defaultMethod != null)
+                if ((defaultMethod != null) && (defaultMethod.GetParameters().Count() > 0))
                 {
-                    ConsoleFeatures.WriteMessage("  Direct Command Parameters (if no sub-command specified):");
+                    ConsoleFeatures.WriteMessage("  Direct Usage Parameters (if no sub-command specified):");
                     PrintMethodHelp(defaultMethod);
                 }
 
                 // Get the child-commands and write help for them
                 if (cmdAttr.ChildCommands != null && cmdAttr.ChildCommands.Length > 0)
                 {
+                    ConsoleFeatures.WriteMessage("  Supported Commands:");
                     foreach (var item in cmdAttr.ChildCommands)
                     {
                         var attr = item.GetTypeInfo().GetCustomAttribute<ConsoleCommandAttribute>();
-                        ConsoleFeatures.WriteMessage($"{attr.CommandName}\t\t{attr.CommandDescription}");
+                        ConsoleFeatures.WriteMessage($"  - {attr.CommandName}: {attr.CommandDescription}");
                     }
                 }
 
@@ -314,16 +319,16 @@ namespace ConsoleAppBase
                 var methods = currentCommandContextForHelp
                                 .GetMethods(BindingFlags.Public | BindingFlags.Static)
                                 .Where(m => m.GetCustomAttributes<ConsoleCommandAttribute>().Count() > 0);
-                foreach (var item in methods) PrintMethodHelp(item);
+                foreach (var item in methods) PrintMethodHelp(item, "  ");
 
             }
         }
 
-        private void PrintMethodHelp(MethodInfo mi)
+        private void PrintMethodHelp(MethodInfo mi, string prefix = "")
         {
             var attr = mi.GetCustomAttribute<ConsoleCommandAttribute>();
             if (attr != null)
-                ConsoleFeatures.WriteMessage($"{attr.CommandName}\t\t{attr.CommandDescription}");
+                ConsoleFeatures.WriteMessage($"{prefix}- {attr.CommandName}: {attr.CommandDescription}");
 
             var parametersOfMethod = mi.GetParameters();
             foreach (var item in parametersOfMethod)
@@ -339,16 +344,16 @@ namespace ConsoleAppBase
                                           ? "n/a"
                                           : $"-{methodAttr.ParameterShortName}");
 
-                    ConsoleFeatures.WriteMessage($"  --{methodAttr.ParameterName} " +
+                    ConsoleFeatures.WriteMessage($"{prefix}  --{methodAttr.ParameterName} " +
                                                  $"(short: {shortParamHelp}) " +
                                                  $"{item.ParameterType.Name} " +
                                                  $"(default: {paramDefaultValueHelp})" +
                                                  $"{Environment.NewLine}    " +
-                                                 $"{attr.CommandDescription}");
+                                                 $"{prefix}{attr.CommandDescription}");
                 }
                 else
                 {
-                    ConsoleFeatures.WriteMessage($"  --{item.Name} " +
+                    ConsoleFeatures.WriteMessage($"{prefix}  --{item.Name} " +
                                                  $"(short: n/a) " +
                                                  $"{item.ParameterType.Name} " +
                                                  $"(default: {paramDefaultValueHelp})");
