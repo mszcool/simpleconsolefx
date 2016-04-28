@@ -2,7 +2,7 @@
   "profiles": {
     "ConsoleApp.Test": {
       "commandName": "ConsoleApp.Test",
-      "commandLineArgs": "testa commanda --help --parama \"this is my test\" --paramc http://www.gmx.at"
+      "commandLineArgs": "testa --help --parama \"this is my test\" --paramc http://www.gmx.at"
     }
   }
 }

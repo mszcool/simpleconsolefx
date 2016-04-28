@@ -13,7 +13,7 @@ namespace ConsoleAppBase
             CommandName = name;
             IsRootCommand = isRoot;
             if (string.IsNullOrEmpty(description))
-                CommandDescription = "Not available - contact author of console app to provide description!";
+                CommandDescription = "No description available - contact author of console app to provide description!";
             else
                 CommandDescription = description;
             ChildCommands = children;

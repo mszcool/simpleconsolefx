@@ -298,29 +298,41 @@ namespace ConsoleAppBase
                                         .GetMethods(BindingFlags.Public | BindingFlags.Static)
                                         .Where(m => m.GetCustomAttribute<ConsoleCommandDefaultMethodAttribute>() != null)
                                         .FirstOrDefault();
-                if ((defaultMethod != null) && (defaultMethod.GetParameters().Count() > 0))
+                if (defaultMethod != null)
                 {
-                    ConsoleFeatures.WriteMessage("  Direct Usage Parameters (if no sub-command specified):");
-                    PrintMethodHelp(defaultMethod);
-                }
-
-                // Get the child-commands and write help for them
-                if (cmdAttr.ChildCommands != null && cmdAttr.ChildCommands.Length > 0)
-                {
-                    ConsoleFeatures.WriteMessage("  Supported Commands:");
-                    foreach (var item in cmdAttr.ChildCommands)
+                    ConsoleFeatures.WriteMessage($"This command can be called directly.");
+                    if (defaultMethod.GetParameters().Count() > 0)
                     {
-                        var attr = item.GetTypeInfo().GetCustomAttribute<ConsoleCommandAttribute>();
-                        ConsoleFeatures.WriteMessage($"  - {attr.CommandName}: {attr.CommandDescription}");
+                        ConsoleFeatures.WriteMessage($"Direct usage parameters (if no additional command specified):");
+                        PrintMethodHelp(defaultMethod);
                     }
                 }
 
                 // Get all the detailed methods annoated with the attribute of this specific type
-                var methods = currentCommandContextForHelp
+                var hasChildCommands = (cmdAttr.ChildCommands != null && cmdAttr.ChildCommands.Length > 0);
+                var commandMethods = currentCommandContextForHelp
                                 .GetMethods(BindingFlags.Public | BindingFlags.Static)
                                 .Where(m => m.GetCustomAttributes<ConsoleCommandAttribute>().Count() > 0);
-                foreach (var item in methods) PrintMethodHelp(item, "  ");
+                
+                if(hasChildCommands || (commandMethods.Count() > 0))
+                {
+                    ConsoleFeatures.WriteMessage($"{Environment.NewLine}Additional commands available: ");
+                }
 
+                // Print out the direct method help
+                foreach (var item in commandMethods) PrintMethodHelp(item, "  ");
+
+                // Print out the remaining sub-commands' help text
+                if (cmdAttr.ChildCommands != null && cmdAttr.ChildCommands.Length > 0)
+                {
+                    foreach (var item in cmdAttr.ChildCommands)
+                    {
+                        var attr = item.GetTypeInfo().GetCustomAttribute<ConsoleCommandAttribute>();
+                        ConsoleFeatures.WriteMessage($"  {attr.CommandName}: {attr.CommandDescription}");
+                    }
+                }
+
+                
             }
         }
 
@@ -328,7 +340,7 @@ namespace ConsoleAppBase
         {
             var attr = mi.GetCustomAttribute<ConsoleCommandAttribute>();
             if (attr != null)
-                ConsoleFeatures.WriteMessage($"{prefix}- {attr.CommandName}: {attr.CommandDescription}");
+                ConsoleFeatures.WriteMessage($"{prefix}{attr.CommandName}: {attr.CommandDescription}");
 
             var parametersOfMethod = mi.GetParameters();
             foreach (var item in parametersOfMethod)
