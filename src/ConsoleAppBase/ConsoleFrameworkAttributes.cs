@@ -8,7 +8,7 @@ namespace ConsoleAppBase
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
     public class ConsoleCommandAttribute : Attribute
     {
-        public ConsoleCommandAttribute(string name, bool isRoot = true, string description = "", Type[] children = null) 
+        public ConsoleCommandAttribute(string name, string description, bool isRoot = true, Type[] children = null) 
         {
             CommandName = name;
             IsRootCommand = isRoot;
@@ -33,6 +33,15 @@ namespace ConsoleAppBase
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
     public class ConsoleCommandDefaultMethodAttribute : Attribute
     {
+        public ConsoleCommandDefaultMethodAttribute(string description)
+        {
+            if (string.IsNullOrEmpty(description))
+                CommandDescription = "No description available - contact author of console app to provide description!";
+            else
+                CommandDescription = description;
+        }
+
+        public string CommandDescription { get; set; }
     }
 
     // Future feature: enable "short" versions of the parameters as well

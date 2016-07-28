@@ -2,11 +2,12 @@
     "version": "1.0.0-*",
     "description": "ConsoleAppBase Class Library",
     "authors": [ "mszCool" ],
-    "summary": "A little base framework for developing typical and simple console applications with .NET!",
-    "tags": [ "Console", "Framework" ],
-    "projectUrl": "http://github.com/mszcool/simpleconsoleappfx",
-    "licenseUrl": "",
-
+    "packOptions": {
+        "projectUrl": "http://github.com/mszcool/simpleconsoleappfx",
+        "summary": "A little base framework for developing typical and simple console applications with .NET!",
+        "tags": [ "Console", "Framework" ],
+        "licenseUrl": ""
+    },
     "frameworks": {
         "net451": {
             "dependencies": {
@@ -22,17 +23,19 @@
                 "System.Reflection.TypeExtensions": "4.0.0"
             }
         },
-        "dotnet5.4": {
+        "netstandard1.6": {
             "dependencies": {
-                "Microsoft.CSharp": "4.0.1-beta-23516",
-                "System.Console": "4.0.0-beta-23516",
-                "System.Collections": "4.0.11-beta-23516",
-                "System.Linq": "4.0.1-beta-23516",
-                "System.Runtime": "4.0.21-beta-23516",
-                "System.Threading": "4.0.11-beta-23516",
-                "System.Text.RegularExpressions": "4.0.11-beta-23516",
-                "System.Reflection": "4.1.0-beta-23516",
-                "System.Reflection.TypeExtensions": "4.1.0-beta-23516"
+                "Microsoft.CSharp": "4.0.1",
+                "System.Console": "4.0.0",
+                "System.Collections": "4.0.11",
+                "System.Linq": "4.1.0",
+                "System.Runtime": "4.1.0",
+                "System.Threading": "4.0.11",
+                "System.Text.RegularExpressions": "4.1.0",
+                "System.Reflection": "4.1.0",
+                "System.Reflection.TypeExtensions": "4.1.0",
+                "System.Reflection.Extensions": "4.0.1",
+                "Microsoft.DotNet.InternalAbstractions": "1.0.0"
             }
         }
     }

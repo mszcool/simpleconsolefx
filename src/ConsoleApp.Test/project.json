@@ -1,32 +1,39 @@
 {
-  "version": "1.0.0-*",
-  "description": "ConsoleApp.Test Console Application",
-  "authors": [ "mario" ],
-  "tags": [ "" ],
-  "projectUrl": "",
-  "licenseUrl": "",
-
-  "compilationOptions": {
-    "emitEntryPoint": true
-  },
-
-    "dependencies": {
-        "ConsoleAppBase": "1.0.0-*"
+    "version": "0.1.0-*",
+    "description": "ConsoleApp.Test Console Application",
+    "authors": [ "mario" ],
+    "packOptions": {
+        "tags": [ "" ],
+        "projectUrl": "",
+        "licenseUrl": ""
     },
 
-  "commands": {
-    "ConsoleApp.Test": "ConsoleApp.Test"
-  },
+    "buildOptions": {
+        "emitEntryPoint": true
+    },
 
-  "frameworks": {
-    "dnxcore50": {
-      "dependencies": {
-        "Microsoft.CSharp": "4.0.1-beta-23516",
-        "System.Collections": "4.0.11-beta-23516",
-        "System.Console": "4.0.0-beta-23516",
-        "System.Linq": "4.0.1-beta-23516",
-        "System.Threading": "4.0.11-beta-23516"
-      }
+    "dependencies": {
+        "ConsoleAppBase": "1.0.0-*",
+        "Microsoft.NETCore.App": {
+            "type": "platform",
+            "version": "1.0.0"
+        }
+    },
+
+    "commands": {
+        "ConsoleApp.Test": "ConsoleApp.Test"
+    },
+
+    "frameworks": {
+        "netcoreapp1.0": {
+            "imports": "dnxcore50",
+            "dependencies": {
+                "Microsoft.CSharp": "4.0.1",
+                "System.Collections": "4.0.11",
+                "System.Console": "4.0.0",
+                "System.Linq": "4.1.0",
+                "System.Threading": "4.0.11"
+            }
+        }
     }
-  }
 }
